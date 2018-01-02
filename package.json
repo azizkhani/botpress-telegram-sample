@@ -1,0 +1,21 @@
+{
+    "name": "botnew",
+    "version": "0.0.1",
+    "description": "",
+    "main": "index.js",
+    "dependencies": {
+        "botpress": "1.x",
+        "botpress-audience": "^1.0.2",
+        "botpress-broadcast": "^2.0.11",
+        "botpress-scheduler": "^2.0.9",
+        "botpress-telegram": "file:../telegram_module/botpress-telegram",
+        "botpress-web": "1.x"
+    },
+    "scripts": {
+        "start": "botpress start",
+        "dev": "botpress start --watch",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "aziz",
+    "license": "Botpress Proprietary License"
+}
