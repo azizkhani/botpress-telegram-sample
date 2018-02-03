@@ -1,23 +1,7 @@
-/*
-  CONGRATULATIONS on creating your first Botpress bot!
 
-  This is the programmatic entry point of your bot.
-  Your bot's logic resides here.
-  
-  Here's the next steps for you:
-  1. Read this file to understand how this simple bot works
-  2. Read the `content.yml` file to understand how messages are sent
-  3. Install a connector module (Facebook Messenger and/or Slack)
-  4. Customize your bot!
+const _ = require('lodash')
+const shopping = require('./shopping')
 
-  Happy bot building!
-
-  The Botpress Team
-  ----
-  Getting Started (Youtube Video): https://www.youtube.com/watch?v=HTpUmDz9kRY
-  Documentation: https://botpress.io/docs
-  Our Slack Community: https://slack.botpress.io
-*/
 
 const DEFAULT_ANSWERS = event => [
   event.user.first_name + ", choose something from the menu below but please don't say words to me :)",
@@ -27,51 +11,104 @@ const DEFAULT_ANSWERS = event => [
   "I hope you see how easy it is to create a bot on botpress " + event.user.first_name + ", clearly I'm in need of some nlp functionality though!"
 ]
 module.exports = function(bp) {
-  // Listens for a first message (this is a Regex)
-  // GET_STARTED is the first message you get on Facebook Messenger
-  bp.hear(/GET_STARTED|hello|hi|test|hey|holla/i, (event, next) => {
-    event.reply('#welcome') // See the file `content.yml` to see the block
-  })
+  shopping.initialDB(bp);
 
-  
+  bp.middlewares.load();
 
-  // You can also pass a matcher object to better filter events
-  bp.hear({
-    type: /message|text/i,
-    text: /exit|bye|goodbye|quit|done|leave|stop/i
-  }, (event, next) => {
-    event.reply('#goodbye', {
-      // You can pass data to the UMM bloc!
-      reason: 'unknown'
-    })
-  })
+  bp.hear(/start|hi|بازگشت/i, (event, next) => {
+    bp.telegram.sendText(event.chat.id,
+      shopping.config.botInfoMessage,
+      shopping.config.homeOption);
+    shopping.createCustomer(event.chat.id);
+  });
 
   bp.hear({
     type: /message|text/i,
-    text: /list|ali/i,
+    text: /تنظیمات/i,
   }, (event, next) => {
-    bp.telegram.sendText(event.chat.id, "انتخاب کنید",{
-      reply_markup: {
-          keyboard: [
-              ["💪سفارش", "💪محصولات"],   
-              ["💪درباره ما"] 
-          ]
-      }
+    shopping.customerInfo(event.chat.id).then(customer => {
+      event.reply('#customerInfo', customer);
+      bp.telegram.sendText(event.chat.id,
+        customer.fullname || 'اطلاعات',
+        shopping.config.customerOptions);
     });
-    bp.telegram.sendText(event.chat.id, "انتخاب کنید",{
-      reply_markup: {
-          inline_keyboard	: [
-              [{
-                text: 'تست دکمه داخلی',
-                callback_data: 'test'
-              }]
-            ]
-      }
+
+  });
+
+  bp.hear({
+    type: /message|text/i,
+    text: /تغییر نام و نام خانوادگی/i,
+    text: /تغییر شماره موبایل/i,
+  }, (event, next) => {
+    const question=event.text;
+    var prop = _.find(shopping.config.customerProp, { value: question });
+
+    const txt = txt => bp.telegram.createText(event.chat.id, txt);
+
+    bp.convo.start(event, convo => {
+      convo.threads['default'].addQuestion(txt('لطفا اطلاعات خود را وارد کنید'+event.text), [
+        { 
+          pattern: /(\d+)/i,
+          callback: (response) => {
+            let newCustomerInfo=Object.assign({}, {id:event.chat.id}, { [prop.key]: response.match });
+            shopping.updateCustomerInfo(newCustomerInfo).then(customer=>{
+              event.reply('#customerInfo', customer);
+              event.reply('#message', {
+                message: 'با موفقیت ذخیره شد',
+              });
+            });
+            convo.stop();
+          }
+        },
+      ]);
     });
-  })
+
+    // bp.hear({
+    //     type: /message|text/i,
+    //     text: /.+/g,
+    //   }, (event, next) => {
+    //     console.log(event);
+    //     let newCustomerInfo=Object.assign({}, {id:event.chat.id}, { [prop.key]: event.text });
+    //     shopping.updateCustomerInfo(newCustomerInfo).then(customer=>{
+    //       event.reply('#customerInfo', customer);
+    //       event.reply('#message', {
+    //         message: 'با موفقیت ذخیره شد',
+    //       });
+    //       //todo will disable hear here
+    //     });
+    // });
+
+  });
+
+  bp.hear({
+    type: /message|text/i,
+    text: /محصولات/i,
+  }, (event, next) => {
+
+    bp.telegram.sendText(event.chat.id,'test',{
+      request_location:true
+    });
+
+    shopping.products().then(products=>{
+      _.forEach(products, (prod) => { 
+        bp.telegram.sendAttachment(event.chat.id,
+          shopping.config.imageUrl + prod.imageCode,
+          shopping.productOption(prod)
+        );
+      });
+    });
+
+  });
+
+
+
 
   bp.botDefaultResponse = event => {
     const text = _.sample(DEFAULT_ANSWERS(event));
     return bp.telegram.sendText(event.chat.id, text);
   }
 }
+
+
+
+  

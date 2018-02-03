@@ -94,7 +94,7 @@ module.exports = {
 
   config: {
     'botpress-telegram': {
-      botToken: '451660170:AAHM2CD-Z8Kt3AwqcQLnaUgIk5bUJay3s0M',
+      botToken: '513341284:AAFk3004FOvTv2Ct9h_cPk1Z-n6fBDgOJXI',
     }
   }
 }
