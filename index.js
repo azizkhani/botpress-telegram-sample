@@ -12,6 +12,8 @@ const DEFAULT_ANSWERS = event => [
 ]
 module.exports = function(bp) {
   shopping.initialDB(bp);
+  var arr2 = shopping.config.customerOptions.reply_markup.keyboard.join('|');
+  console.log(arr2);
 
   bp.middlewares.load();
 
@@ -19,7 +21,11 @@ module.exports = function(bp) {
     bp.telegram.sendText(event.chat.id,
       shopping.config.botInfoMessage,
       shopping.config.homeOption);
-    shopping.createCustomer(event.chat.id);
+    shopping.createCustomer({
+      id: event.chat.id,
+      items: [],
+      fullname: event.user.first_name + ' ' + event.user.last_name
+    });
   });
 
   bp.hear({
@@ -29,7 +35,7 @@ module.exports = function(bp) {
     shopping.customerInfo(event.chat.id).then(customer => {
       event.reply('#customerInfo', customer);
       bp.telegram.sendText(event.chat.id,
-        customer.fullname || 'اطلاعات',
+         ' اطلاعات شما در سامانه به شرح زیر است در صورتی که هر یک از این اطلاعات درست نیست لطفا اصلاح نمایید',
         shopping.config.customerOptions);
     });
 
@@ -37,21 +43,57 @@ module.exports = function(bp) {
 
   bp.hear({
     type: /message|text/i,
-    text: /تغییر نام و نام خانوادگی/i,
-    text: /تغییر شماره موبایل/i,
+    text: /سبد خرید/i,
   }, (event, next) => {
-    const question=event.text;
-    var prop = _.find(shopping.config.customerProp, { value: question });
+    shopping.order(event.chat.id,orderMessage=>{
+      event.reply('#message', {
+        message: 'با موفقیت ذخیره شد' + orderMessage,
+      });
+    });
 
+  });
+
+
+  bp.hear({
+    type: /contact/i,
+    text: /./i,
+  }, (event, next) => {
+    let newCustomerInfo = Object.assign({}, { id: event.chat.id }, { mobileNumber: event.raw.contact.phone_number });
+    shopping.updateCustomerInfo(newCustomerInfo, customer => {
+      event.reply('#customerInfo', customer);
+      event.reply('#message', {
+        message: 'با موفقیت ذخیره شد',
+      });
+    });
+  });
+
+  bp.hear({
+    type: /location/i,
+    text: /./i,
+  }, (event, next) => {
+    let newCustomerInfo = Object.assign({}, { id: event.chat.id }, { location: event.raw.location });
+    shopping.updateCustomerInfo(newCustomerInfo, customer => {
+      event.reply('#customerInfo', customer);
+      event.reply('#message', {
+        message: 'با موفقیت ذخیره شد',
+      });
+    });
+  });
+  
+  bp.hear({
+    type: /message|text/i,
+    text: /تغییر نام و نام خانوادگی|تغییر شماره موبایل|تغییر آدرس|تغییر کد پستی|تغییر شماره کارت بانکی/i
+  }, (event, next) => {
+    var prop = _.find(shopping.config.customerProp, { value: event.text });
     const txt = txt => bp.telegram.createText(event.chat.id, txt);
 
     bp.convo.start(event, convo => {
-      convo.threads['default'].addQuestion(txt('لطفا اطلاعات خود را وارد کنید'+event.text), [
+      convo.threads['default'].addQuestion(txt(' لطفا اطلاعات '+event.text.replace('تغییر','')+' خود را وارد کنید '), [
         { 
-          pattern: /(\d+)/i,
+          pattern: /./i,
           callback: (response) => {
-            let newCustomerInfo=Object.assign({}, {id:event.chat.id}, { [prop.key]: response.match });
-            shopping.updateCustomerInfo(newCustomerInfo).then(customer=>{
+            let newCustomerInfo=Object.assign({}, {id:event.chat.id}, { [prop.key]: response.text });
+            shopping.updateCustomerInfo(newCustomerInfo,customer=>{
               event.reply('#customerInfo', customer);
               event.reply('#message', {
                 message: 'با موفقیت ذخیره شد',
@@ -63,31 +105,12 @@ module.exports = function(bp) {
       ]);
     });
 
-    // bp.hear({
-    //     type: /message|text/i,
-    //     text: /.+/g,
-    //   }, (event, next) => {
-    //     console.log(event);
-    //     let newCustomerInfo=Object.assign({}, {id:event.chat.id}, { [prop.key]: event.text });
-    //     shopping.updateCustomerInfo(newCustomerInfo).then(customer=>{
-    //       event.reply('#customerInfo', customer);
-    //       event.reply('#message', {
-    //         message: 'با موفقیت ذخیره شد',
-    //       });
-    //       //todo will disable hear here
-    //     });
-    // });
-
   });
 
   bp.hear({
     type: /message|text/i,
     text: /محصولات/i,
   }, (event, next) => {
-
-    bp.telegram.sendText(event.chat.id,'test',{
-      request_location:true
-    });
 
     shopping.products().then(products=>{
       _.forEach(products, (prod) => { 
@@ -100,7 +123,31 @@ module.exports = function(bp) {
 
   });
 
+  bp.hear({
+    type: /message|callback_query/i,
+    text: /prod/i,
+  }, (event, next) => {
+    const txt = txt => bp.telegram.createText(event.chat.id, txt);
 
+    bp.convo.start(event, convo => {
+      convo.threads['default'].addQuestion(txt('تعداد کالا را وارد نمایدد'), [
+        {
+          pattern: /./i,
+          callback: (response) => {
+            shopping.addLineItem(event.chat.id,{product:{id:12,name:'12121'},quantity:response.text,price:100});
+            shopping.order(event.chat.id,orderMessage=>{
+              event.reply('#message', {
+                message: 'با موفقیت ذخیره شد' + orderMessage,
+              });
+              convo.stop();
+            });
+            
+          }
+        },
+      ]);
+    });
+
+  });
 
 
   bp.botDefaultResponse = event => {

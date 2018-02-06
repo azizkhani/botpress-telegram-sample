@@ -1,12 +1,12 @@
 //import {DB} from './db';
-const DB = require('./db')
+const DB = require('./db');
 
-const _ = require('lodash')
-const axios = require('axios')
+const _ = require('lodash');
+const axios = require('axios');
 
 
 
-let db = null
+let db = null;
 
 module.exports = {
   products: async () => {
@@ -18,14 +18,14 @@ module.exports = {
           //searchFilter:'$$,$$e.shop.id$$1$$1$$,$$'
         }
       })
-      .catch(err => 'not available')
+      .catch(err => 'not available');
     return response.data;
   },
-  createCustomer:(chatId)=>{
-    db.kvs.get(chatId)
-    .then(customer => {
-      if(!customer){
-        db.kvs.set(chatId,{id:chatId});
+  createCustomer:(customer)=>{
+    db.kvs.get(customer.id)
+    .then(cu => {
+      if(!cu){
+        db.kvs.set(customer.id,customer);
       }
     });
 
@@ -33,9 +33,14 @@ module.exports = {
     //   db.addCustommer({id:chatId});
     // } 
   },
-  updateCustomerInfo: (customer)=>{
-    db.kvs.set(customer.id,customer);
-    return module.exports.customerInfo(customer.id);
+  updateCustomerInfo: (customer,callback)=>{
+
+    return db.kvs.get(customer.id).then(c=>{
+      var updatedCustomer=Object.assign({}, c, customer);
+      db.kvs.set(customer.id,updatedCustomer);
+      callback(updatedCustomer);
+    });
+
     // if (db.hasCustomer(customer.id)) {
     //   db.addCustommer(customer);
     // } else {
@@ -56,8 +61,8 @@ module.exports = {
       reply_markup: {
         inline_keyboard: [
           [{
-            text: 'خرید',
-            callback_data: 'prod_' + prod.id
+            text: 'خرید'+prod.id,
+            callback_data: 'prod_'+prod.id
           }]
         ]
       },
@@ -68,6 +73,28 @@ module.exports = {
     return db.kvs.get(id);
     //return db.getCustommer(id);
   },
+  addLineItem:(customerId,lineitem)=>{
+    return db.kvs.get(customerId).then(c=>{
+      var index = _.findIndex(c.items | [], { product:{id : lineitem.product.id }});
+      if(index>=0){
+        c.items.splice(index, 1, lineitem);
+      }else if(c.items){
+        c.items.push(lineitem);
+      }else{
+        c.items=[lineitem];
+      }
+      db.kvs.set(customerId,c);
+    });
+  },
+  order:(customerId,callback)=>{
+     db.kvs.get(customerId).then(c=>{
+      var order=''
+      _.forEach(c.items,item=>{
+        order=order+item.product.name+' :تعداد'+item.quantity+' :قیمت'+item.price;
+      });
+      callback(order);
+    });
+  },
   config: {
     shopId: '1',
     imageUrl:'https://res.cloudinary.com/dgzibu5s6/image/upload/',
@@ -77,15 +104,17 @@ module.exports = {
           { key: 'mobileNumber', value: 'تغییر شماره موبایل' },
           { key: 'address', value: 'تغییر آدرس' },
           { key: 'postCode', value: 'تغییر کد پستی' },
-          { key: 'cardNumber', value: 'تغییر شماره کارت بانکی' }
+          { key: 'cardNumber', value: 'تغییر شماره کارت بانکی' },
+          { key: 'location', value: 'تغییر شماره کارت بانکی' }
     ],
     customerOptions: {
       reply_markup: {
         keyboard: [
           ['تغییر نام و نام خانوادگی'],
-          ['تغییر شماره موبایل'],
+          [{ text: "تغییر شماره موبایل", request_contact: true }],
           ['تغییر آدرس'],
           ['تغییر کد پستی'],
+          [{ text: "تغییر محل سکونت", request_location: true }],
           ['تغییر شماره کارت بانکی'],
           ['بازگشت'],
         ]

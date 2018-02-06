@@ -17,13 +17,17 @@ goodbye:
   - Hope to see you back again soon! # if no other properties, you can just send a strings
 
 customerInfo:
-  - اطلاعات مشتری
-  - text:  نام و نام خانوادگی {{fullname}} 
-            شماره موبایل {{mobileNumber}} 
-            آدرس {{address}} 
-            کد پستی {{postCode}} 
-            شماره کارت {{cardNumber}} 
-            کد مشتری  {{id}} 
+  - text:  نام و نام خانوادگی= {{fullname}} 
+
+            شماره موبایل= {{mobileNumber}} 
+
+            آدرس= {{address}} 
+
+            کد پستی= {{postCode}} 
+
+            شماره کارت= {{cardNumber}} 
+
+            کد مشتری=  {{id}} 
     typing: true
 
 
