@@ -9,11 +9,10 @@ const DEFAULT_ANSWERS = event => [
   "Motivational videos are all I understand unfortunately",
   "I like you.  You say words to me that sound nice even if I don't understand them :s",
   "I hope you see how easy it is to create a bot on botpress " + event.user.first_name + ", clearly I'm in need of some nlp functionality though!"
-]
+];
+
 module.exports = function(bp) {
   shopping.initialDB(bp);
-  var arr2 = shopping.config.customerOptions.reply_markup.keyboard.join('|');
-  console.log(arr2);
 
   bp.middlewares.load();
 
@@ -46,11 +45,16 @@ module.exports = function(bp) {
     text: /سبد خرید/i,
   }, (event, next) => {
     shopping.order(event.chat.id,orderMessage=>{
-      event.reply('#message', {
-        message: 'با موفقیت ذخیره شد' + orderMessage,
-      });
+      bp.telegram.sendText(event.chat.id, orderMessage,shopping.config.orderOption);
     });
+  });
 
+  bp.hear({
+    type: /message|text/i,
+    text: /پاک کردن سفارش/i,
+  }, (event, next) => {
+    shopping.removeOrder(event.chat.id,()=>{
+    });
   });
 
 
@@ -88,8 +92,7 @@ module.exports = function(bp) {
     const txt = txt => bp.telegram.createText(event.chat.id, txt);
 
     bp.convo.start(event, convo => {
-      convo.threads['default'].addQuestion(txt(' لطفا اطلاعات '+event.text.replace('تغییر','')+' خود را وارد کنید '), [
-        { 
+      convo.threads['default'].addQuestion(txt(' لطفا اطلاعات '+event.text.replace('تغییر','')+' خود را وارد کنید '), [{ 
           pattern: /./i,
           callback: (response) => {
             let newCustomerInfo=Object.assign({}, {id:event.chat.id}, { [prop.key]: response.text });
@@ -113,6 +116,7 @@ module.exports = function(bp) {
   }, (event, next) => {
 
     shopping.products().then(products=>{
+      bp.telegram.sendText(event.chat.id,'لیست محصولات',shopping.config.productDetailOption);
       _.forEach(products, (prod) => { 
         bp.telegram.sendAttachment(event.chat.id,
           shopping.config.imageUrl + prod.imageCode,
@@ -128,20 +132,30 @@ module.exports = function(bp) {
     text: /prod/i,
   }, (event, next) => {
     const txt = txt => bp.telegram.createText(event.chat.id, txt);
-
+    //'prod@@'+prod.id+'@@'+prod.name+'@@'+prod.price
+    var prodArray=event.text.split('@@');
+    var prod = {
+      id: parseInt(prodArray[1]),
+      name: prodArray[2],
+      price: parseInt(prodArray[3])
+    };
+    console.log(prod);
     bp.convo.start(event, convo => {
-      convo.threads['default'].addQuestion(txt('تعداد کالا را وارد نمایدد'), [
-        {
+      convo.threads['default'].addQuestion(txt('تعداد '+prod.name+' را وارد نمایید'), [{
           pattern: /./i,
           callback: (response) => {
-            shopping.addLineItem(event.chat.id,{product:{id:12,name:'12121'},quantity:response.text,price:100});
-            shopping.order(event.chat.id,orderMessage=>{
-              event.reply('#message', {
-                message: 'با موفقیت ذخیره شد' + orderMessage,
+            shopping.addLineItem(event.chat.id, {
+              product: { id: prod.id, name: prod.name },
+              price: prod.price,
+              quantity: parseInt(response.text)
+            },()=>{
+              shopping.order(event.chat.id,orderMessage=>{
+                event.reply('#message', {
+                  message:  orderMessage,
+                });
+                convo.stop();
               });
-              convo.stop();
             });
-            
           }
         },
       ]);
@@ -149,13 +163,8 @@ module.exports = function(bp) {
 
   });
 
-
   bp.botDefaultResponse = event => {
     const text = _.sample(DEFAULT_ANSWERS(event));
     return bp.telegram.sendText(event.chat.id, text);
-  }
-}
-
-
-
-  
+  };
+};

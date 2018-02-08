@@ -8,13 +8,8 @@ welcome: # this is the #welcome bloc referenced in index.js
 
 
 message:
-  - text:  👉 {{message}}
+  - text:   {{message}} 😀
     typing: true
-
-goodbye:
-  - text: You are leaving because of reason {{reason}}
-    typing: true
-  - Hope to see you back again soon! # if no other properties, you can just send a strings
 
 customerInfo:
   - text:  نام و نام خانوادگی= {{fullname}} 
@@ -24,8 +19,6 @@ customerInfo:
             آدرس= {{address}} 
 
             کد پستی= {{postCode}} 
-
-            شماره کارت= {{cardNumber}} 
 
             کد مشتری=  {{id}} 
     typing: true
