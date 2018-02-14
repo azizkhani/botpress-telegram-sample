@@ -1,6 +1,6 @@
 
-const _ = require('lodash')
-const shopping = require('./shopping')
+const _ = require('lodash');
+const shopping = require('./shopping');
 
 
 const DEFAULT_ANSWERS = event => [
@@ -23,8 +23,11 @@ module.exports = function(bp) {
     shopping.createCustomer({
       id: event.chat.id,
       items: [],
+      firstname: event.user.first_name ,
+      lastname:  event.user.last_name,
       fullname: event.user.first_name + ' ' + event.user.last_name
     });
+
   });
 
   bp.hear({
@@ -57,12 +60,30 @@ module.exports = function(bp) {
     });
   });
 
+  bp.hear({
+    type: /message|text/i,
+    text: /تایید سفارش/i,
+  }, (event, next) => {
+    shopping.saveOrder(event.chat.id,(paymentURL)=>{
+      bp.telegram.sendText(event.chat.id, "سفارش شما در سامانه ثبت گردید برای اتمام فرایند سفارش پرداخت را انجام دهید ", {
+        reply_markup: {
+          inline_keyboard: [
+            [{
+              text: 'پرداخت الکترونیکی',
+              url: paymentURL
+            }]
+          ]
+        }
+      });
+    });
+  });
+
 
   bp.hear({
     type: /contact/i,
     text: /./i,
   }, (event, next) => {
-    let newCustomerInfo = Object.assign({}, { id: event.chat.id }, { mobileNumber: event.raw.contact.phone_number });
+    let newCustomerInfo = Object.assign({}, { id: event.chat.id }, { phoneNumber: event.raw.contact.phone_number });
     shopping.updateCustomerInfo(newCustomerInfo, customer => {
       event.reply('#customerInfo', customer);
       event.reply('#message', {
@@ -75,7 +96,7 @@ module.exports = function(bp) {
     type: /location/i,
     text: /./i,
   }, (event, next) => {
-    let newCustomerInfo = Object.assign({}, { id: event.chat.id }, { location: event.raw.location });
+    let newCustomerInfo = Object.assign({}, { id: event.chat.id }, { location: event.raw.location.latitude + ',' + event.raw.location.longitude });
     shopping.updateCustomerInfo(newCustomerInfo, customer => {
       event.reply('#customerInfo', customer);
       event.reply('#message', {
@@ -139,7 +160,6 @@ module.exports = function(bp) {
       name: prodArray[2],
       price: parseInt(prodArray[3])
     };
-    console.log(prod);
     bp.convo.start(event, convo => {
       convo.threads['default'].addQuestion(txt('تعداد '+prod.name+' را وارد نمایید'), [{
           pattern: /./i,

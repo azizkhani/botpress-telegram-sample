@@ -9,19 +9,39 @@ welcome: # this is the #welcome bloc referenced in index.js
 
 message:
   - text:   {{message}} 😀
+    keyboards:
+      - text: text
+        request_contact: true
+      - text: text
+        request_location: false
     typing: true
+
+test:
+  - text:   salam 😀
+    keyboards:
+      - text: text1
+        request_contact: true
+      - text: text2
+        request_location: false
+    typing: true
+
 
 customerInfo:
   - text:  نام و نام خانوادگی= {{fullname}} 
 
-            شماره موبایل= {{mobileNumber}} 
+            شماره موبایل= {{phoneNumber}} 
 
             آدرس= {{address}} 
 
-            کد پستی= {{postCode}} 
+            کد پستی= {{postalCode}} 
 
             کد مشتری=  {{id}} 
     typing: true
+    keyboards:
+      - text: text
+        request_contact: true
+      - text: text
+        request_location: false
 
 
 
