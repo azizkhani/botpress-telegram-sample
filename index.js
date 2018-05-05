@@ -110,7 +110,11 @@ module.exports = function(bp) {
     text: /تغییر نام و نام خانوادگی|تغییر شماره موبایل|تغییر آدرس|تغییر کد پستی|تغییر شماره کارت بانکی/i
   }, (event, next) => {
     var prop = _.find(shopping.config.customerProp, { value: event.text });
-    const txt = txt => bp.telegram.createText(event.chat.id, txt);
+    const txt = txt => bp.telegram.createText(event.chat.id, txt,{
+      reply_markup: {
+        force_reply: true
+      }
+    });
 
     bp.convo.start(event, convo => {
       convo.threads['default'].addQuestion(txt(' لطفا اطلاعات '+event.text.replace('تغییر','')+' خود را وارد کنید '), [{ 
@@ -152,7 +156,11 @@ module.exports = function(bp) {
     type: /message|callback_query/i,
     text: /prod/i,
   }, (event, next) => {
-    const txt = txt => bp.telegram.createText(event.chat.id, txt);
+    const txt = txt => bp.telegram.createText(event.chat.id, txt,{
+      reply_markup: {
+        force_reply: true
+      }
+    });
     //'prod@@'+prod.id+'@@'+prod.name+'@@'+prod.price
     var prodArray=event.text.split('@@');
     var prod = {
@@ -184,6 +192,7 @@ module.exports = function(bp) {
   });
 
   bp.botDefaultResponse = event => {
+    console.log('sadsd');
     const text = _.sample(DEFAULT_ANSWERS(event));
     return bp.telegram.sendText(event.chat.id, text);
   };

@@ -24,6 +24,7 @@ module.exports = {
       if (customer.items.length > 0) {
         customer.lastname = customer.fullname;
         customer.username = customerId;
+        //customer.id=-1;
         var order = {
           customer: customer,
           shop: { id: module.exports.config.shopId },
@@ -31,9 +32,8 @@ module.exports = {
         };
         axios.post(module.exports.config.api + '/shopify/order/public', order)
           .catch(err => 'not available').then(result => {
-            console.log(result);
             if (result) {
-              module.exports.saveOrderTest(result.data);
+              //module.exports.saveOrderTest(result.data);
               callback('https://pay.ir/payment/gateway/' + result.data);
               // module.exports.removeOrder(customerId, ()=>{
               //   callback('https://pay.ir/payment/gateway/' + result.data);
@@ -130,7 +130,8 @@ module.exports = {
   },
   config: {
     shopId: '1',
-    api: 'http://localhost:8082/app',
+    api: 'http://botchain.ir/app',
+    //api: 'http://localhost:8082/app',
     imageUrl: 'https://res.cloudinary.com/dgzibu5s6/image/upload/',
     botInfoMessage: ' این بات برای خرید محصولات تولید شده .ممنون که از بات ما استفاده میکنید',
     customerProp: [
@@ -143,12 +144,9 @@ module.exports = {
     customerOptions: {
       reply_markup: {
         keyboard: [
-          ['تغییر نام و نام خانوادگی'],
-          [{ text: "تغییر شماره موبایل", request_contact: true }],
-          ['تغییر آدرس'],
-          ['تغییر کد پستی'],
-          [{ text: "تغییر محل سکونت", request_location: true }],
-          ['🔙بازگشت'],
+          ['تغییر نام و نام خانوادگی',{ text: "تغییر شماره موبایل", request_contact: true }],
+          ['تغییر آدرس','تغییر کد پستی'],
+          ['🔙بازگشت',{ text: "تغییر محل تحویل", request_location: true }],
         ],
         resize_keyboard: true
       }
